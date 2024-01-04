@@ -66,6 +66,8 @@ class Enemy {
     this.positionY = positionY;
 
     this.speed = 20;
+
+    this.markedForDetection = false;
   }
   draw(context) {
     context.strokeRect(this.x, this.y, this.width, this.height);
@@ -73,6 +75,14 @@ class Enemy {
   update(x, y) {
     this.x = x + this.positionX;
     this.y = y + this.positionY;
+
+    //check collision between enemy and projectile
+    this.game.projectilesPool.forEach((projectile) => {
+      if (!projectile.free && this.game.checkCollision(this, projectile)) {
+        this.markedForDetection = true;
+        projectile.reset();
+      }
+    });
   }
 }
 
@@ -106,6 +116,7 @@ class Wave {
       enemy.update(this.x, this.y);
       enemy.draw(context);
     });
+    this.enemies = this.enemies.filter((obj) => !obj.markedForDetection);
   }
   create() {
     for (let y = 0; y < this.game.rows; y++) {
@@ -172,6 +183,16 @@ class Game {
     for (let i = 0; i < this.projectilesPool.length; i++) {
       if (this.projectilesPool[i].free) return this.projectilesPool[i];
     }
+  }
+
+  //collision detection between 2 recktangles
+  checkCollision(a, b) {
+    return (
+      a.x < b.x + b.width &&
+      a.x + a.width > b.x &&
+      a.y < b.y + b.height &&
+      a.y + a.height > b.y
+    );
   }
 }
 
