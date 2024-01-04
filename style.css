@@ -4,4 +4,5 @@ canvas {
   left: 50%;
   transform: translate(-50%);
   border: 5px solid #000;
+  background: url(./images/background.png);
 }
