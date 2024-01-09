@@ -6,3 +6,6 @@ canvas {
   border: 5px solid #000;
   background: url(./images/background.png);
 }
+#beetlemorph {
+  display: none;
+}

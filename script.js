@@ -77,7 +77,19 @@ class Enemy {
     this.markedForDetection = false;
   }
   draw(context) {
-    context.strokeRect(this.x, this.y, this.width, this.height);
+    // context.strokeRect(this.x, this.y, this.width, this.height);
+    // context.drawImage(this.image, this.x, this.y, this.width, this.height);
+    context.drawImage(
+      this.image,
+      this.frameX * this.width,
+      this.frameY * this.height,
+      this.width,
+      this.height,
+      this.x,
+      this.y,
+      this.width,
+      this.height
+    );
   }
   update(x, y) {
     this.x = x + this.positionX;
@@ -86,11 +98,19 @@ class Enemy {
     //check collision between enemy and projectile
     this.game.projectilesPool.forEach((projectile) => {
       if (!projectile.free && this.game.checkCollision(this, projectile)) {
-        this.markedForDetection = true;
+        // this.markedForDetection = true;
+        this.hit(1);
         projectile.reset();
-        if (!this.game.gameOver) this.game.score++;
+        // if (!this.game.gameOver) this.game.score++;
       }
     });
+    if (this.lives < 1) {
+      this.frameX++;
+      if (this.frameX > this.maxFrames) {
+        this.markedForDetection = true;
+        if (!this.game.gameOver) this.game.score += this.maxLives;
+      }
+    }
 
     //check collision between enemy and player
     if (this.game.checkCollision(this, this.game.player)) {
@@ -106,6 +126,22 @@ class Enemy {
       this.markedForDetection = true;
     }
   }
+  hit(damage) {
+    this.lives -= damage;
+  }
+}
+
+class Beetlemorph extends Enemy {
+  constructor(game, positionX, positionY) {
+    super(game, positionX, positionY);
+    this.image = document.getElementById('beetlemorph');
+    this.frameX = 0;
+    this.frameY = Math.floor(Math.random() * 4);
+    this.lives = 1;
+
+    this.maxFrames = 2;
+    this.maxLives = this.lives;
+  }
 }
 
 class Wave {
@@ -113,9 +149,9 @@ class Wave {
     this.game = game;
     this.width = this.game.columns * this.game.enemySize;
     this.height = this.game.rows * this.game.enemySize;
-    this.x = 0;
+    this.x = this.game.width / 2 - this.width / 2;
     this.y = -this.height;
-    this.speedX = 3;
+    this.speedX = Math.random() < 0.5 ? -1 : 1;
     this.speedY = 0;
 
     this.enemies = [];
@@ -147,7 +183,7 @@ class Wave {
       for (let x = 0; x < this.game.columns; x++) {
         let enemyX = x * this.game.enemySize;
         let enemyY = y * this.game.enemySize;
-        this.enemies.push(new Enemy(this.game, enemyX, enemyY));
+        this.enemies.push(new Beetlemorph(this.game, enemyX, enemyY));
       }
     }
   }
@@ -168,7 +204,7 @@ class Game {
 
     this.columns = 2;
     this.rows = 2;
-    this.enemySize = 60;
+    this.enemySize = 80;
 
     this.waves = [];
     this.waves.push(new Wave(this));
