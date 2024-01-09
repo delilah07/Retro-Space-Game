@@ -97,7 +97,11 @@ class Enemy {
 
     //check collision between enemy and projectile
     this.game.projectilesPool.forEach((projectile) => {
-      if (!projectile.free && this.game.checkCollision(this, projectile)) {
+      if (
+        !projectile.free &&
+        this.game.checkCollision(this, projectile) &&
+        this.lives > 0
+      ) {
         // this.markedForDetection = true;
         this.hit(1);
         projectile.reset();
@@ -105,7 +109,8 @@ class Enemy {
       }
     });
     if (this.lives < 1) {
-      this.frameX++;
+      if (this.game.spriteUpdate) this.frameX++;
+
       if (this.frameX > this.maxFrames) {
         this.markedForDetection = true;
         if (!this.game.gameOver) this.game.score += this.maxLives;
@@ -215,6 +220,10 @@ class Game {
 
     this.fired = false;
 
+    this.spriteUpdate = false;
+    this.spriteTimer = 0;
+    this.spriteInterval = 120;
+
     // event listener
     window.addEventListener('keydown', (e) => {
       if (e.key === '1' && !this.fired) this.player.shoot();
@@ -230,7 +239,19 @@ class Game {
       //   console.log(this.keys);
     });
   }
-  render(context) {
+  render(context, deltaTime = 0) {
+    //sptite timing
+    console.log(this.spriteTimer, deltaTime);
+    if (this.spriteTimer > this.spriteInterval) {
+      this.spriteUpdate = true;
+      this.spriteTimer = 0;
+    } else {
+      this.spriteUpdate = false;
+      console.log(this.spriteTimer, deltaTime);
+      this.spriteTimer += deltaTime;
+      console.log(this.spriteTimer, deltaTime);
+    }
+
     this.drawStatusText(context);
 
     this.player.draw(context);
@@ -341,10 +362,15 @@ window.addEventListener('load', function () {
   //   console.log(game);
   game.render(ctx);
 
-  function animate() {
+  let lastTime = 0;
+
+  function animate(timeStamp) {
+    const deltaTime = timeStamp - lastTime;
+    console.log(timeStamp, lastTime, deltaTime);
+    lastTime = timeStamp;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    game.render(ctx);
+    game.render(ctx, deltaTime);
     requestAnimationFrame(animate); // window.requestAnimationFrame(animate);
   }
-  animate();
+  animate(0);
 });
