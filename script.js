@@ -169,7 +169,6 @@ class Enemy {
     //lose condition
     if (this.y + this.height > this.game.height || this.game.player.lives < 1) {
       this.game.gameOver = true;
-      1;
     }
   }
   hit(damage) {
@@ -187,6 +186,23 @@ class Beetlemorph extends Enemy {
 
     this.maxFrames = 2;
     this.maxLives = this.lives;
+  }
+}
+
+class Rhinomorph extends Enemy {
+  constructor(game, positionX, positionY) {
+    super(game, positionX, positionY);
+    this.image = document.getElementById('rhinomorph');
+    this.frameX = 0;
+    this.frameY = Math.floor(Math.random() * 4);
+    this.lives = 4;
+
+    this.maxFrames = 5;
+    this.maxLives = this.lives;
+  }
+  hit(damage) {
+    this.lives -= damage;
+    this.frameX = this.maxLives - Math.floor(this.lives);
   }
 }
 
@@ -229,7 +245,14 @@ class Wave {
       for (let x = 0; x < this.game.columns; x++) {
         let enemyX = x * this.game.enemySize;
         let enemyY = y * this.game.enemySize;
-        this.enemies.push(new Beetlemorph(this.game, enemyX, enemyY));
+        const procentOfRhinomorpth =
+          (!this.game.wavesCount ? 1 : this.game.wavesCount - 1) * 0.05 + 0.05;
+
+        if (Math.random() < procentOfRhinomorpth) {
+          this.enemies.push(new Rhinomorph(this.game, enemyX, enemyY));
+        } else {
+          this.enemies.push(new Beetlemorph(this.game, enemyX, enemyY));
+        }
       }
     }
   }
