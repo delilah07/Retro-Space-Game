@@ -1,20 +1,55 @@
 class Player {
   constructor(game) {
     this.game = game;
-    this.width = 100;
-    this.height = 100;
+    this.width = 140;
+    this.height = 120;
     this.x = this.game.width / 2 - this.width / 2;
     this.y = this.game.height - this.height;
     this.speed = 5;
     this.lives = 3;
+    this.maxLives = 10;
+    this.image = document.getElementById('player');
+    this.jets_image = document.getElementById('player_jets');
+    this.frameX = 0;
+    this.jetsFrameX = 1;
   }
   draw(context) {
-    context.fillRect(this.x, this.y, this.width, this.height);
+    //handle sprite frames
+    this.game.keys.indexOf('1') > -1 ? (this.frameX = 1) : (this.frameX = 0);
+    context.drawImage(
+      this.image,
+      this.frameX * this.width,
+      0,
+      this.width,
+      this.height,
+      this.x,
+      this.y,
+      this.width,
+      this.height
+    );
+    context.drawImage(
+      this.jets_image,
+      this.jetsFrameX * this.width,
+      0,
+      this.width,
+      this.height,
+      this.x,
+      this.y,
+      this.width,
+      this.height
+    );
   }
   update() {
     //horizontal movement
-    if (this.game.keys.indexOf('ArrowLeft') > -1) this.x -= this.speed;
-    if (this.game.keys.indexOf('ArrowRight') > -1) this.x += this.speed;
+    if (this.game.keys.indexOf('ArrowLeft') > -1) {
+      this.x -= this.speed;
+      this.jetsFrameX = 0;
+    } else if (this.game.keys.indexOf('ArrowRight') > -1) {
+      this.x += this.speed;
+      this.jetsFrameX = 2;
+    } else {
+      this.jetsFrameX = 1;
+    }
 
     //horizontal boundaries
     if (this.x < -this.width / 2) this.x = -this.width / 2;
@@ -37,7 +72,7 @@ class Player {
 
 class Projectile {
   constructor() {
-    this.width = 4;
+    this.width = 3;
     this.height = 20;
     this.x = 0;
     this.y = 0;
@@ -46,7 +81,12 @@ class Projectile {
   }
 
   draw(context) {
-    if (!this.free) context.fillRect(this.x, this.y, this.width, this.height);
+    if (!this.free) {
+      context.save();
+      context.fillStyle = 'gold';
+      context.fillRect(this.x, this.y, this.width, this.height);
+      context.restore();
+    }
   }
   update() {
     if (!this.free) this.y -= this.speed;
@@ -118,17 +158,18 @@ class Enemy {
     }
 
     //check collision between enemy and player
-    if (this.game.checkCollision(this, this.game.player)) {
-      this.markedForDetection = true;
-      if (!this.game.gameOver && this.game.score > 0) this.game.score--;
+    if (this.game.checkCollision(this, this.game.player) && this.lives > 0) {
+      // this.markedForDetection = true;
+      // if (!this.game.gameOver && this.game.score > 0) this.game.score--;
+      this.lives = 0;
       this.game.player.lives--;
-      if (this.game.player.lives < 1) this.game.gameOver = true;
+      // if (this.game.player.lives < 1) this.game.gameOver = true;
     }
 
     //lose condition
-    if (this.y + this.height > this.game.height) {
+    if (this.y + this.height > this.game.height || this.game.player.lives < 1) {
       this.game.gameOver = true;
-      this.markedForDetection = true;
+      1;
     }
   }
   hit(damage) {
@@ -203,12 +244,12 @@ class Game {
     this.player = new Player(this);
 
     this.projectilesPool = [];
-    this.numberOfProjectile = 10;
+    this.numberOfProjectile = 15;
 
     this.createProjectiles();
 
-    this.columns = 2;
-    this.rows = 2;
+    this.columns = 1;
+    this.rows = 1;
     this.enemySize = 80;
 
     this.waves = [];
@@ -222,7 +263,7 @@ class Game {
 
     this.spriteUpdate = false;
     this.spriteTimer = 0;
-    this.spriteInterval = 120;
+    this.spriteInterval = 150;
 
     // event listener
     window.addEventListener('keydown', (e) => {
@@ -241,32 +282,33 @@ class Game {
   }
   render(context, deltaTime = 0) {
     //sptite timing
-    console.log(this.spriteTimer, deltaTime);
+
     if (this.spriteTimer > this.spriteInterval) {
       this.spriteUpdate = true;
       this.spriteTimer = 0;
     } else {
       this.spriteUpdate = false;
-      console.log(this.spriteTimer, deltaTime);
+
       this.spriteTimer += deltaTime;
-      console.log(this.spriteTimer, deltaTime);
     }
 
     this.drawStatusText(context);
 
-    this.player.draw(context);
-    this.player.update();
     this.projectilesPool.forEach((projectile) => {
       projectile.update();
       projectile.draw(context);
     });
+
+    this.player.draw(context);
+    this.player.update();
+
     this.waves.forEach((wave) => {
       wave.render(context);
       if (wave.enemies.length < 1 && !wave.nextWaveTrigger && !this.gameOver) {
         this.newWave();
         this.wavesCount++;
         wave.nextWaveTrigger = true;
-        this.player.lives++;
+        if (this.player.lives < this.player.maxLives) this.player.lives++;
       }
     });
   }
@@ -304,9 +346,11 @@ class Game {
     context.fillText(`Score: ${this.score}`, 20, 40);
 
     context.fillText(`Wave: ${this.wavesCount}`, 20, 80);
-
+    for (let i = 0; i < this.player.maxLives; i++) {
+      context.strokeRect(20 + 20 * i, 100, 10, 15);
+    }
     for (let i = 0; i < this.player.lives; i++) {
-      context.fillRect(20 + 10 * i, 100, 5, 20);
+      context.fillRect(20 + 20 * i, 100, 10, 15);
     }
 
     if (this.gameOver) {
@@ -355,7 +399,6 @@ window.addEventListener('load', function () {
   canvas.height = 800;
   ctx.fillStyle = '#fff';
   ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 3;
   ctx.font = '30px Impact';
 
   const game = new Game(canvas);
@@ -366,7 +409,7 @@ window.addEventListener('load', function () {
 
   function animate(timeStamp) {
     const deltaTime = timeStamp - lastTime;
-    console.log(timeStamp, lastTime, deltaTime);
+
     lastTime = timeStamp;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     game.render(ctx, deltaTime);

@@ -6,6 +6,8 @@ canvas {
   border: 5px solid #000;
   background: url(./images/background.png);
 }
-#beetlemorph {
+#beetlemorph,
+#player,
+#player_jets {
   display: none;
 }
