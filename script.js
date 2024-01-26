@@ -257,7 +257,8 @@ class Wave {
       this.speedX *= -1;
       this.speedY = this.game.enemySize;
     }
-    this.x += this.speedX;
+    this.x += this.speedX * Math.ceil(this.game.wavesCount / 10);
+
     this.y += this.speedY;
 
     this.enemies.forEach((enemy) => {
@@ -338,7 +339,7 @@ class Boss {
       this.speedX *= -1;
       this.speedY = this.height / 2;
     }
-    this.x += this.speedX;
+    this.x += this.speedX * Math.ceil(this.game.wavesCount / 10);
     this.y += this.speedY;
 
     //collision detection between boss and projectile
@@ -628,7 +629,6 @@ class Game {
     this.bossArray = [];
     this.bossLives = 10;
     // this.bossArray.push(new Boss(this));
-    console.log(this.waves, this.bossArray);
 
     this.score = 0;
     this.gameOver = false;
@@ -638,8 +638,8 @@ class Game {
 window.addEventListener('load', function () {
   const canvas = document.querySelector('canvas');
   const ctx = canvas.getContext('2d');
-  canvas.width = 600;
-  canvas.height = 800;
+  canvas.width = window.innerWidth - 30;
+  canvas.height = window.innerHeight - 30;
   ctx.fillStyle = '#fff';
   ctx.strokeStyle = '#fff';
   ctx.font = '30px Impact';
