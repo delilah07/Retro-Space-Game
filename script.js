@@ -12,10 +12,26 @@ class Player {
     this.jets_image = document.getElementById('player_jets');
     this.frameX = 0;
     this.jetsFrameX = 1;
+
+    this.smallLaser = new SmallLaser(this.game);
+    this.bigLaser = new BigLaser(this.game);
+
+    this.energy = 50;
+    this.maxEnergy = 100;
+    this.cooldown = false;
   }
   draw(context) {
     //handle sprite frames
-    this.game.keys.indexOf('1') > -1 ? (this.frameX = 1) : (this.frameX = 0);
+    // this.game.keys.indexOf('1') > -1 ? (this.frameX = 1) : (this.frameX = 0);
+    if (this.game.keys.indexOf('1') > -1) {
+      this.frameX = 1;
+    } else if (this.game.keys.indexOf('2') > -1) {
+      this.smallLaser.render(context);
+    } else if (this.game.keys.indexOf('3') > -1) {
+      this.bigLaser.render(context);
+    } else {
+      this.frameX = 0;
+    }
     context.drawImage(
       this.image,
       this.frameX * this.width,
@@ -40,6 +56,14 @@ class Player {
     );
   }
   update() {
+    // energy recharge
+    if (this.energy < this.maxEnergy) this.energy += 0.05;
+    if (this.energy < 1) {
+      this.cooldown = true;
+    } else if (this.energy > this.maxEnergy / 5) {
+      this.cooldown = false;
+    }
+
     //horizontal movement
     if (this.game.keys.indexOf('ArrowLeft') > -1) {
       this.x -= this.speed;
@@ -289,23 +313,27 @@ class Boss {
       this.width,
       this.height
     );
-    if (this.lives > 0) {
+    if (this.lives >= 1) {
       context.save();
       context.textAlign = 'center';
       context.shadowOffsetX = 3;
       context.shadowOffsetY = 3;
       context.shadowColor = 'black';
-      context.fillText(this.lives, this.x + this.width / 2, this.y + 30);
+      context.fillText(
+        Math.floor(this.lives),
+        this.x + this.width / 2,
+        this.y + 30
+      );
       context.restore();
     }
   }
   update() {
     this.speedY = 0;
-    if (this.game.spriteUpdate && this.lives > 0) this.frameX = 0;
+    if (this.game.spriteUpdate && this.lives >= 1) this.frameX = 0;
     if (this.y < 0) this.y += 4;
     if (
       this.x < 0 ||
-      (this.x > this.game.width - this.width && this.lives > 0)
+      (this.x > this.game.width - this.width && this.lives >= 1)
     ) {
       this.speedX *= -1;
       this.speedY = this.height / 2;
@@ -318,14 +346,14 @@ class Boss {
       if (
         this.game.checkCollision(this, projectile) &&
         !projectile.free &&
-        this.lives > 0
+        this.lives >= 1
       ) {
         this.hit(1);
         projectile.reset();
       }
     });
     //collision detection between boss and player
-    if (this.game.checkCollision(this, this.game.player) && this.lives > 0) {
+    if (this.game.checkCollision(this, this.game.player) && this.lives >= 1) {
       this.game.gameOver = true;
       this.lives = 0;
     }
@@ -343,7 +371,75 @@ class Boss {
   }
   hit(damage) {
     this.lives -= damage;
-    if (this.lives > 0) this.frameX = 1;
+    if (this.lives >= 1) this.frameX = 1;
+  }
+}
+
+class Laser {
+  constructor(game) {
+    this.game = game;
+    this.x = 0;
+    this.y = 0;
+    this.height = this.game.height - 50;
+  }
+  render(context) {
+    this.x = this.game.player.x + this.game.player.width / 2 - this.width / 2;
+    this.game.player.energy -= this.damage;
+
+    context.save();
+    context.fillStyle = 'gold';
+    context.fillRect(this.x, this.y, this.width, this.height);
+    context.fillStyle = 'white';
+    context.fillRect(
+      this.x + this.width / 4,
+      this.y,
+      this.width / 2,
+      this.height
+    );
+    context.restore();
+
+    if (this.game.spriteUpdate) {
+      this.game.waves.forEach((wave) => {
+        wave.enemies.forEach((enemy) => {
+          if (this.game.checkCollision(enemy, this)) {
+            enemy.hit(this.damage);
+          }
+        });
+      });
+      this.game.bossArray.forEach((boss) => {
+        if (this.game.checkCollision(boss, this) && boss.y >= 0) {
+          boss.hit(this.damage);
+        }
+      });
+    }
+  }
+}
+
+class SmallLaser extends Laser {
+  constructor(game) {
+    super(game);
+    this.width = 5;
+    this.damage = 0.3;
+  }
+  render(context) {
+    if (this.game.player.energy > 1 && !this.game.player.cooldown) {
+      super.render(context);
+      this.game.player.frameX = 2;
+    }
+  }
+}
+
+class BigLaser extends Laser {
+  constructor(game) {
+    super(game);
+    this.width = 20;
+    this.damage = 0.6;
+  }
+  render(context) {
+    if (this.game.player.energy > 1 && !this.game.player.cooldown) {
+      super.render(context);
+      this.game.player.frameX = 3;
+    }
   }
 }
 
@@ -476,6 +572,17 @@ class Game {
       context.fillRect(20 + 20 * i, 100, 10, 15);
     }
 
+    //energy
+    context.save();
+    this.player.cooldown
+      ? (context.fillStyle = 'red')
+      : (context.fillStyle = 'gold');
+    for (let i = 0; i < this.player.energy; i++) {
+      context.fillRect(20 + 2 * i, 130, 2, 15);
+    }
+    context.restore();
+
+    // game over
     if (this.gameOver) {
       context.textAlign = 'center';
       context.font = '100px Impact';
